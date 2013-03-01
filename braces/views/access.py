@@ -1,5 +1,3 @@
-import warnings
-
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.views import redirect_to_login
@@ -37,6 +35,20 @@ class AccessMixin(object):
 
         return self.redirect_field_name
 
+    def check_user(self, user):
+        msg = "%(cls) should define a check_user method."
+        raise ImproperlyConfigured(msg % {self.__class__.__name__})
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.check_user(request.user):
+            if self.raise_exception:
+                raise PermissionDenied  # return a forbidden response
+            else:
+                return redirect_to_login(request.get_full_path(),
+                    self.get_login_url(), self.get_redirect_field_name())
+
+        return super(AccessMixin, self).dispatch(request, *args, **kwargs)
+
 
 class LoginRequiredMixin(AccessMixin):
     """
@@ -45,16 +57,8 @@ class LoginRequiredMixin(AccessMixin):
     NOTE:
         This should be the left-most mixin of a view.
     """
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated():
-            if self.raise_exception:
-                raise PermissionDenied  # return a forbidden response
-            else:
-                return redirect_to_login(request.get_full_path(),
-                    self.get_login_url(), self.get_redirect_field_name())
-
-        return super(LoginRequiredMixin, self).dispatch(request, *args,
-            **kwargs)
+    def check_user(self, user):
+        return user.is_authenticated()
 
 
 class PermissionRequiredMixin(AccessMixin):
@@ -83,26 +87,11 @@ class PermissionRequiredMixin(AccessMixin):
     """
     permission_required = None  # Default required perms to none
 
-    def dispatch(self, request, *args, **kwargs):
-        # Make sure that the permission_required attribute is set on the
-        # view, or raise a configuration error.
+    def check_user(self, user):
         if self.permission_required is None:
             raise ImproperlyConfigured("'PermissionRequiredMixin' requires "
                 "'permission_required' attribute to be set.")
-
-        # Check to see if the request's user has the required permission.
-        has_permission = request.user.has_perm(self.permission_required)
-
-        if not has_permission:  # If the user lacks the permission
-            if self.raise_exception:  # *and* if an exception was desired
-                raise PermissionDenied  # return a forbidden response.
-            else:
-                return redirect_to_login(request.get_full_path(),
-                                         self.get_login_url(),
-                                         self.get_redirect_field_name())
-
-        return super(PermissionRequiredMixin, self).dispatch(request,
-            *args, **kwargs)
+        return user.has_perm(self.permission_required)
 
 
 class MultiplePermissionsRequiredMixin(AccessMixin):
@@ -145,7 +134,7 @@ class MultiplePermissionsRequiredMixin(AccessMixin):
     """
     permissions = None  # Default required perms to none
 
-    def dispatch(self, request, *args, **kwargs):
+    def check_user(self, user):
         self._check_permissions_attr()
 
         perms_all = self.permissions.get('all') or None
@@ -157,30 +146,10 @@ class MultiplePermissionsRequiredMixin(AccessMixin):
 
         # If perms_all, check that user has all permissions in the list/tuple
         if perms_all:
-            if not request.user.has_perms(perms_all):
-                if self.raise_exception:
-                    raise PermissionDenied
-                return redirect_to_login(request.get_full_path(),
-                                         self.get_login_url(),
-                                         self.get_redirect_field_name())
+            return user.has_perms(perms_all)
 
         # If perms_any, check that user has at least one in the list/tuple
-        if perms_any:
-            has_one_perm = False
-            for perm in perms_any:
-                if request.user.has_perm(perm):
-                    has_one_perm = True
-                    break
-
-            if not has_one_perm:
-                if self.raise_exception:
-                    raise PermissionDenied
-                return redirect_to_login(request.get_full_path(),
-                                         self.get_login_url(),
-                                         self.get_redirect_field_name())
-
-        return super(MultiplePermissionsRequiredMixin, self).dispatch(request,
-            *args, **kwargs)
+        return any(user.has_perm(perm) for perm in perms_any)
 
     def _check_permissions_attr(self):
         """
@@ -216,31 +185,13 @@ class SuperuserRequiredMixin(AccessMixin):
     """
     Mixin allows you to require a user with `is_superuser` set to True.
     """
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_superuser:  # If the user is a standard user,
-            if self.raise_exception:  # *and* if an exception was desired
-                raise PermissionDenied  # return a forbidden response.
-            else:
-                return redirect_to_login(request.get_full_path(),
-                                         self.get_login_url(),
-                                         self.get_redirect_field_name())
-
-        return super(SuperuserRequiredMixin, self).dispatch(request,
-            *args, **kwargs)
+    def check_user(self, user):
+        return user.is_superuser
 
 
 class StaffuserRequiredMixin(AccessMixin):
     """
     Mixin allows you to require a user with `is_staff` set to True.
     """
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_staff:  # If the request's user is not staff,
-            if self.raise_exception:  # *and* if an exception was desired
-                raise PermissionDenied  # return a forbidden response
-            else:
-                return redirect_to_login(request.get_full_path(),
-                                         self.get_login_url(),
-                                         self.get_redirect_field_name())
-
-        return super(StaffuserRequiredMixin, self).dispatch(request,
-            *args, **kwargs)
+    def check_user(self, user):
+        return user.is_staff
