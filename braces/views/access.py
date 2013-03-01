@@ -3,48 +3,7 @@ import warnings
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.views import redirect_to_login
-from django.core import serializers
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from django.core.serializers.json import DjangoJSONEncoder
-from django.core.urlresolvers import reverse
-from django.http import HttpResponse
-from django.utils.decorators import method_decorator
-from django.views.generic import CreateView
-from django.views.decorators.csrf import csrf_exempt
-
-## Django 1.5+ compat
-try:
-    import json
-except ImportError:  # pragma: no cover
-    from django.utils import simplejson as json
-
-
-class CreateAndRedirectToEditView(CreateView):
-    """
-    Subclass of CreateView which redirects to the edit view.
-    Requires property `success_url_name` to be set to a
-    reversible url that uses the objects pk.
-    """
-    success_url_name = None
-
-    def dispatch(self, request, *args, **kwargs):
-        warnings.warn("CreateAndRedirectToEditView is deprecated and will be "
-            "removed in a future release.", PendingDeprecationWarning)
-        return super(CreateAndRedirectToEditView, self).dispatch(request,
-            *args, **kwargs)
-
-    def get_success_url(self):
-        # First we check for a name to be provided on the view object.
-        # If one is, we reverse it and finish running the method,
-        # otherwise we raise a configuration error.
-        if self.success_url_name:
-            self.success_url = reverse(self.success_url_name,
-                kwargs={'pk': self.object.pk})
-            return super(CreateAndRedirectToEditView, self).get_success_url()
-
-        raise ImproperlyConfigured(
-            "No URL to reverse. Provide a success_url_name.")
-
 
 class AccessMixin(object):
     """
@@ -96,19 +55,6 @@ class LoginRequiredMixin(AccessMixin):
 
         return super(LoginRequiredMixin, self).dispatch(request, *args,
             **kwargs)
-
-
-class CsrfExemptMixin(object):
-    """
-    Exempts the view from CSRF requirements.
-
-    NOTE:
-        This should be the left-most mixin of a view.
-    """
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super(CsrfExemptMixin, self).dispatch(*args, **kwargs)
 
 
 class PermissionRequiredMixin(AccessMixin):
@@ -266,41 +212,6 @@ class MultiplePermissionsRequiredMixin(AccessMixin):
                 "or tuple." % key)
 
 
-class UserFormKwargsMixin(object):
-    """
-    CBV mixin which puts the user from the request into the form kwargs.
-    Note: Using this mixin requires you to pop the `user` kwarg
-    out of the dict in the super of your form's `__init__`.
-    """
-    def get_form_kwargs(self):
-        kwargs = super(UserFormKwargsMixin, self).get_form_kwargs()
-        # Update the existing form kwargs dict with the request's user.
-        kwargs.update({"user": self.request.user})
-        return kwargs
-
-
-class SuccessURLRedirectListMixin(object):
-    """
-    Simple CBV mixin which sets the success url to the list view of
-    a given app. Set success_list_url as a class attribute of your
-    CBV and don't worry about overloading the get_success_url.
-
-    This is only to be used for redirecting to a list page. If you need
-    to reverse the url with kwargs, this is not the mixin to use.
-    """
-    success_list_url = None  # Default the success url to none
-
-    def get_success_url(self):
-        # Return the reversed success url.
-        if self.success_list_url is None:
-            raise ImproperlyConfigured("%(cls)s is missing a succes_list_url "
-                "name to reverse and redirect to. Define "
-                "%(cls)s.success_list_url or override "
-                "%(cls)s.get_success_url()"
-                "." % {"cls": self.__class__.__name__})
-        return reverse(self.success_list_url)
-
-
 class SuperuserRequiredMixin(AccessMixin):
     """
     Mixin allows you to require a user with `is_superuser` set to True.
@@ -318,82 +229,6 @@ class SuperuserRequiredMixin(AccessMixin):
             *args, **kwargs)
 
 
-class SetHeadlineMixin(object):
-    """
-    Mixin allows you to set a static headline through a static property on the
-    class or programmatically by overloading the get_headline method.
-    """
-    headline = None  # Default the headline to none
-
-    def get_context_data(self, **kwargs):
-        kwargs = super(SetHeadlineMixin, self).get_context_data(**kwargs)
-        # Update the existing context dict with the provided headline.
-        kwargs.update({"headline": self.get_headline()})
-        return kwargs
-
-    def get_headline(self):
-        if self.headline is None:  # If no headline was provided as a view
-                                   # attribute and this method wasn't
-                                   # overridden raise a configuration error.
-            raise ImproperlyConfigured("%(cls)s is missing a headline. "
-                "Define %(cls)s.headline, or override "
-                "%(cls)s.get_headline()." % {"cls": self.__class__.__name__
-            })
-        return self.headline
-
-
-class SelectRelatedMixin(object):
-    """
-    Mixin allows you to provide a tuple or list of related models to
-    perform a select_related on.
-    """
-    select_related = None  # Default related fields to none
-
-    def get_queryset(self):
-        if self.select_related is None:  # If no fields were provided,
-                                         # raise a configuration error
-            raise ImproperlyConfigured("%(cls)s is missing the "
-                "select_related property. This must be a tuple or list." % {
-                    "cls": self.__class__.__name__})
-
-        if not isinstance(self.select_related, (tuple, list)):
-            # If the select_related argument is *not* a tuple or list,
-            # raise a configuration error.
-            raise ImproperlyConfigured("%(cls)s's select_related property "
-                "must be a tuple or list." % {"cls": self.__class__.__name__})
-
-        # Get the current queryset of the view
-        queryset = super(SelectRelatedMixin, self).get_queryset()
-
-        return queryset.select_related(*self.select_related)
-
-
-class PrefetchRelatedMixin(object):
-    """
-    Mixin allows you to provide a tuple or list of related models to
-    perform a prefetch_related on.
-    """
-    prefetch_related = None  # Default prefetch fields to none
-
-    def get_queryset(self):
-        if self.prefetch_related is None:  # If no fields were provided,
-                                           # raise a configuration error
-            raise ImproperlyConfigured("%(cls)s is missing the "
-                "prefetch_related property. This must be a tuple or list." % {
-                    "cls": self.__class__.__name__})
-
-        if not isinstance(self.prefetch_related, (tuple, list)):
-            # If the select_related argument is *not* a tuple or list,
-            # raise a configuration error.
-            raise ImproperlyConfigured("%(cls)s's prefetch_related property "
-                "must be a tuple or list." % {"cls": self.__class__.__name__})
-
-        # Get the current queryset of the view
-        queryset = super(PrefetchRelatedMixin, self).get_queryset()
-
-        return queryset.prefetch_related(*self.prefetch_related)
-
-
 class StaffuserRequiredMixin(AccessMixin):
     """
     Mixin allows you to require a user with `is_staff` set to True.
@@ -409,70 +244,3 @@ class StaffuserRequiredMixin(AccessMixin):
 
         return super(StaffuserRequiredMixin, self).dispatch(request,
             *args, **kwargs)
-
-
-class JSONResponseMixin(object):
-    """
-    A mixin that allows you to easily serialize simple data such as a dict or
-    Django models.
-    """
-    content_type = "application/json"
-
-    def get_content_type(self):
-        if self.content_type is None:
-            raise ImproperlyConfigured("%(cls)s is missing a content type. "
-                "Define %(cls)s.content_type, or override "
-                "%(cls)s.get_content_type()." % {
-                "cls": self.__class__.__name__
-            })
-        return self.content_type
-
-    def render_json_response(self, context_dict):
-        """
-        Limited serialization for shipping plain data. Do not use for models
-        or other complex or custom objects.
-        """
-        json_context = json.dumps(context_dict, cls=DjangoJSONEncoder,
-            ensure_ascii=False)
-        return HttpResponse(json_context, content_type=self.get_content_type())
-
-    def render_json_object_response(self, objects, **kwargs):
-        """
-        Serializes objects using Django's builtin JSON serializer. Additional
-        kwargs can be used the same way for django.core.serializers.serialize.
-        """
-        json_data = serializers.serialize("json", objects, **kwargs)
-        return HttpResponse(json_data, content_type=self.get_content_type())
-
-
-class AjaxResponseMixin(object):
-    """
-    Mixin allows you to define alternative methods for ajax requests. Similar
-    to the normal get, post, and put methods, you can use get_ajax, post_ajax,
-    and put_ajax.
-    """
-    def dispatch(self, request, *args, **kwargs):
-        request_method = request.method.lower()
-
-        if request.is_ajax() and request_method in self.http_method_names:
-            handler = getattr(self, '%s_ajax' % request_method,
-                self.http_method_not_allowed)
-            self.request = request
-            self.args = args
-            self.kwargs = kwargs
-            return handler(request, *args, **kwargs)
-
-        return super(AjaxResponseMixin, self).dispatch(request, *args,
-            **kwargs)
-
-    def get_ajax(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
-
-    def post_ajax(self, request, *args, **kwargs):
-        return self.post(request, *args, **kwargs)
-
-    def put_ajax(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
-
-    def delete_ajax(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
