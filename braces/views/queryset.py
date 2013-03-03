@@ -50,3 +50,17 @@ class PrefetchRelatedMixin(object):
         queryset = super(PrefetchRelatedMixin, self).get_queryset()
 
         return queryset.prefetch_related(*self.prefetch_related)
+
+
+class UserQuerysetMixin(object):
+    """
+    Filter the queryset to include only instances attached to the current user.
+    This mixin assumes that the user is not anonymous so it should be used
+    in conjunction with LoginRequiredMixin.
+    """
+    user_field_name = 'user'
+    
+    def get_queryset(self):
+        queryset = super(UserQuerysetMixin, self).get_queryset()
+        queryset = queryset.filter(**{self.user_field_name: self.request.user})
+        return queryset

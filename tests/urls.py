@@ -20,6 +20,8 @@ urlpatterns = patterns('',
         views.CreateArticleAndRedirectToListViewBad.as_view()),
     url(r'^article_list/$', views.ArticleListView.as_view(),
         name='article_list'),
+    url(r'^user_article_list/$', views.UserArticleListView.as_view(),
+        name='user_article_list'),
 
     # UserFormKwargsMixin tests
     url(r'^form_with_user_kwarg/$', views.FormWithUserKwargView.as_view()),

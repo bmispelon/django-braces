@@ -354,6 +354,45 @@ See Django's docs for more information on `prefetch_related`_.
         template_name = "users/detail.html"
 
 
+UserQuerysetMixin
+=================
+
+A mixin for views that use get_queryset (Listview, DetailView, UpdateView, ...)
+so that it only returns model instances related to the request's user.
+
+This mixin uses the user_field_name attribute to determine which field on the
+model is the foreign key to the user model.
+
+::
+
+    # models.py
+    from django.db import models
+    
+    class Book(models.Model):
+        title = models.CharField()
+        owner = models.ForeignKey('auth.User')
+    
+    
+    # views.py
+    from django.views.generic import ListView
+    from braces.views import UserQuerysetMixin
+    from .models import Book
+    
+    class BookListView(UserQuerysetMixin, ListView):
+        """Only list the books for which the current user is the owner."""
+        model = Book
+        user_field_name = 'owner'
+    
+    
+    class BookUpdateView(UserQuerysetMixin, UpdateView):
+        """
+        If the current user is not the owner of the request Book, this view
+        will throw a 404 error.
+        """
+        model = Book
+        user_field_name = 'owner'
+
+
 JSONResponseMixin
 =================
 

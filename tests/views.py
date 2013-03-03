@@ -113,6 +113,11 @@ class ArticleListView(SelectRelatedMixin, ListView):
     select_related = ('author',)
 
 
+class UserArticleListView(UserQuerysetMixin, ArticleListView):
+    """Only list the current user's articles."""
+    user_field_name = 'author'
+
+
 class FormWithUserKwargView(UserFormKwargsMixin, FormView):
     """
     View for testing UserFormKwargsMixin.
