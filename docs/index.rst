@@ -484,6 +484,62 @@ the standard view methods.
             return self.render_json_response(json_dict)
 
 
+MessageMixin
+============
+
+A mixin that adds a ``messages`` attribute on a view.
+This attribute wraps django.contrib.messages.api while automatically passing
+the current request to any function called on it.
+
+::
+
+    from django.views.generic import View
+    from braces.views import MessageMixin
+    
+    class HelloView(MessageMixin, TemplateView):
+        template_name = 'some_template.html'
+    
+        def get(self, request):
+            self.messages.success('Hello.')
+            return super(HelloView, self).get(request)
+
+
+FormMessageMixin
+================
+
+A subclass of MessageMixin to use with views dealing with forms.
+It adds two optional attributes on the view:
+* form_valid_mesage: if present, this message will be added with the success tag when form_valid is called on the view.
+* form_invalid_message: if present, this message will be added with the error tag when form_invalid is called.
+
+::
+
+    from django.views.generic import FormView
+    from braces.views import FormMessageMixin
+    
+    class FormWithMessagesview(FormMessageMixin, FormView):
+        form_class = SomeForm
+        form_valid_message = 'The form has been saved.'
+        form_invalid_message = 'Please correct the errors then re-submit.'
+
+
+DeleteMessageMixin
+==================
+
+A subclass of MessageMixin to use with DeleteView.
+It adds an optional delete_message on the view. If provided, this message will
+be added with the success tag when the delete method is called on the view.
+
+::
+
+    from django.views.generic import DeleteView
+    from myapp.models import SomeModel
+    from braces.views import DeleteMessageMixin
+    
+    class SomeDeleteView(DeleteMessageMixin, DeleteView):
+        delete_message = 'The object has been successfully deleted.'
+
+
 Indices and tables
 ==================
 

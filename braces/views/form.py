@@ -48,3 +48,49 @@ class SuccessURLRedirectListMixin(object):
                 "%(cls)s.get_success_url()"
                 "." % {"cls": self.__class__.__name__})
         return reverse(self.success_list_url)
+
+
+class NextMixin(object): # TODO: name
+    """
+    A mixin for generic CBV that defines get_success_url to take into account
+    a parameter in the request.
+    If that parameter is not present, or is empty, fall back to a default URL.
+    """
+    default_success_url = None
+    success_url_param = 'next'
+    success_url_context = 'next'
+    allow_external_redirect = False
+
+    def get_default_success_url(self):
+        """Return the fallback URL for when the request contains no redirect
+        parameter.
+        """
+        if not self.default_success_url:
+            raise ImproperlyConfigured("%(cls)s is missing a fallback success "
+                "URL. Define %(cls)s.default_success_url or override "
+                "%(cls)s.get_default_success_url()"
+                "." % {"cls": self.__class__.__name__})
+        return self.default_success_url
+
+    def get_success_url(self):
+        """Look for a redirect URL in the request parameters (GET or POST)."""
+        if self.success_url: # TODO: document this behaviour
+            return super(NextMixin, self).get_success_url()
+        next = self.request.REQUEST.get(self.success_url_param)
+        fallback = self.get_default_success_url()
+        if next and self.is_valid_redirect(next):
+            return next
+        return fallback
+
+    def is_valid_redirect(self, url):
+        pass # TODO
+
+    def redirect(self):
+        """A utility method that returns a 302 HTTP response."""
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_context_data(self, **kwargs):
+        """Add the computed next URL to the context."""
+        context = super(NextMixin, self).get_context_data(**kwargs)
+        context[self.success_url_context] = self.get_success_url()
+        return context
