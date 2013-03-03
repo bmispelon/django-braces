@@ -8,6 +8,7 @@ Welcome to django-braces's documentation!
 
 You can view the code of our project or fork it and add your own mixins (please, send them back to us), on `Github`_.
 
+
 LoginRequiredMixin
 ==================
 
@@ -146,6 +147,22 @@ Similar to ``SuperuserRequiredMixin``, this mixin allows you to require a user w
         raise_exception = True
 
 
+StaffuserRequiredMixin
+======================
+
+A mixin to support those cases where you want to give staff access to a view.
+
+::
+
+    # views.py
+    from django.views.generic import DetailView
+
+    from braces.views import StaffuserRequiredMixin
+
+    class SomeStaffuserView(LoginRequiredMixin, StaffuserRequiredMixin, TemplateView):
+        template_name = "path/to/template.html"
+
+
 UserFormKwargsMixin
 ===================
 
@@ -235,6 +252,7 @@ The ``SetHeadlineMixin`` is a newer edition to our client's CMS. It allows us to
 of our views. We like to write as few templates as possible, so a mixin like this helps us reuse generic templates. Its usage is amazingly
 straightforward and works much like Django's built-in ``get_queryset`` method. This mixin has two ways of being used.
 
+
 Static Example
 --------------
 
@@ -316,7 +334,7 @@ See Django's docs for more information on `select_related`_.
 
 
 PrefetchRelatedMixin
-==================
+====================
 
 A simple mixin which allows you to specify a list or tuple of reverse foreign key or ManyToMany fields to perform a `prefetch_related`_ on.
 See Django's docs for more information on `prefetch_related`_.
@@ -335,21 +353,6 @@ See Django's docs for more information on `prefetch_related`_.
         prefetch_related = ["post_set"]  # where the Post model has an FK to the User model as an author.
         template_name = "users/detail.html"
 
-
-StaffuserRequiredMixin
-======================
-
-A mixin to support those cases where you want to give staff access to a view.
-
-::
-
-    # views.py
-    from django.views.generic import DetailView
-
-    from braces.views import StaffuserRequiredMixin
-
-    class SomeStaffuserView(LoginRequiredMixin, StaffuserRequiredMixin, TemplateView):
-        template_name = "path/to/template.html"
 
 JSONResponseMixin
 =================
@@ -415,6 +418,7 @@ overriding the `get_content_type()` method.
         def get_content_type(self):
             # Shown just for illustrative purposes
             return 'application/javascript'
+
 
 AjaxResponseMixin
 =================
