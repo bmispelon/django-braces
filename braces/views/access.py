@@ -35,6 +35,14 @@ class AccessMixin(object):
 
         return self.redirect_field_name
 
+
+class CheckUserMixin(AccessMixin):
+    """
+    A concrete implementation of AccessMixin which checks for the return value
+    of a check_user method.
+    This method, given the request's user, should return whether this user
+    should be able to access the view.
+    """
     def check_user(self, user):
         msg = "%(cls) should define a check_user method."
         raise ImproperlyConfigured(msg % {self.__class__.__name__})
@@ -50,7 +58,7 @@ class AccessMixin(object):
         return super(AccessMixin, self).dispatch(request, *args, **kwargs)
 
 
-class LoginRequiredMixin(AccessMixin):
+class LoginRequiredMixin(CheckUserMixin):
     """
     View mixin which verifies that the user is authenticated.
 
@@ -61,7 +69,7 @@ class LoginRequiredMixin(AccessMixin):
         return user.is_authenticated()
 
 
-class PermissionRequiredMixin(AccessMixin):
+class PermissionRequiredMixin(CheckUserMixin):
     """
     View mixin which verifies that the logged in user has the specified
     permission.
@@ -94,7 +102,7 @@ class PermissionRequiredMixin(AccessMixin):
         return user.has_perm(self.permission_required)
 
 
-class MultiplePermissionsRequiredMixin(AccessMixin):
+class MultiplePermissionsRequiredMixin(CheckUserMixin):
     """
     View mixin which allows you to specify two types of permission
     requirements. The `permissions` attribute must be a dict which
@@ -181,7 +189,7 @@ class MultiplePermissionsRequiredMixin(AccessMixin):
                 "or tuple." % key)
 
 
-class SuperuserRequiredMixin(AccessMixin):
+class SuperuserRequiredMixin(CheckUserMixin):
     """
     Mixin allows you to require a user with `is_superuser` set to True.
     """
@@ -189,7 +197,7 @@ class SuperuserRequiredMixin(AccessMixin):
         return user.is_superuser
 
 
-class StaffuserRequiredMixin(AccessMixin):
+class StaffuserRequiredMixin(CheckUserMixin):
     """
     Mixin allows you to require a user with `is_staff` set to True.
     """

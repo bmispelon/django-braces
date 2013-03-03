@@ -1,5 +1,6 @@
 from .access import (
     AccessMixin,
+    CheckUserMixin,
     LoginRequiredMixin,
     PermissionRequiredMixin,
     MultiplePermissionsRequiredMixin,
