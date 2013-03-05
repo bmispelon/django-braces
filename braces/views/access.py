@@ -55,7 +55,7 @@ class CheckUserMixin(AccessMixin):
                 return redirect_to_login(request.get_full_path(),
                     self.get_login_url(), self.get_redirect_field_name())
 
-        return super(AccessMixin, self).dispatch(request, *args, **kwargs)
+        return super(CheckUserMixin, self).dispatch(request, *args, **kwargs)
 
 
 class LoginRequiredMixin(CheckUserMixin):
@@ -152,12 +152,10 @@ class MultiplePermissionsRequiredMixin(CheckUserMixin):
         self._check_perms_keys("all", perms_all)
         self._check_perms_keys("any", perms_any)
 
-        # If perms_all, check that user has all permissions in the list/tuple
-        if perms_all:
-            return user.has_perms(perms_all)
-
-        # If perms_any, check that user has at least one in the list/tuple
-        return any(user.has_perm(perm) for perm in perms_any)
+        has_all = (not perms_all) and True or user.has_perms(perms_all)
+        has_any = (not perms_any) and True or any(user.has_perm(p) for p in perms_any)
+        
+        return has_all and has_any
 
     def _check_permissions_attr(self):
         """
