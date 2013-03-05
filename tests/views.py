@@ -178,3 +178,8 @@ class AuthorDetailView(PrefetchRelatedMixin, ListView):
     model = User
     prefetch_related = ['article_set']
     template_name = 'blank.html'
+
+
+class BadCheckUserView(CheckUserMixin, OkView):
+    # The check_user method is missing on purpose.
+    pass

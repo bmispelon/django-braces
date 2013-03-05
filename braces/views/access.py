@@ -45,7 +45,7 @@ class CheckUserMixin(AccessMixin):
     """
     def check_user(self, user):
         msg = "%(cls) should define a check_user method."
-        raise ImproperlyConfigured(msg % {self.__class__.__name__})
+        raise ImproperlyConfigured(msg % {"cls": self.__class__.__name__})
 
     def dispatch(self, request, *args, **kwargs):
         if not self.check_user(request.user):
@@ -152,8 +152,8 @@ class MultiplePermissionsRequiredMixin(CheckUserMixin):
         self._check_perms_keys("all", perms_all)
         self._check_perms_keys("any", perms_any)
 
-        has_all = (not perms_all) and True or user.has_perms(perms_all)
-        has_any = (not perms_any) and True or any(user.has_perm(p) for p in perms_any)
+        has_all = not perms_all or user.has_perms(perms_all)
+        has_any = not perms_any or any(user.has_perm(p) for p in perms_any)
         
         return has_all and has_any
 

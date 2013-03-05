@@ -95,6 +95,14 @@ class _TestAccessBasicsMixin(TestViewHelper):
                 redirect_field_name=None)
 
 
+class TestCheckUserMixin(test.TestCase):
+    view_url = '/bad_checkuserview/'
+    
+    def test_improperly_configured(self):
+        with self.assertRaises(ImproperlyConfigured):
+            self.client.get(self.view_url)
+
+
 class TestLoginRequiredMixin(TestViewHelper):
     """
     Tests for LoginRequiredMixin.
