@@ -6,7 +6,7 @@ from django.views.generic import (View, UpdateView, FormView, TemplateView,
 from braces.views import *
 
 from .models import Article
-from .forms import FormWithUserKwarg
+from .forms import FormWithUserKwarg, EmptyForm
 
 
 class OkView(View):
@@ -172,6 +172,16 @@ class StaffuserRequiredView(StaffuserRequiredMixin, OkView):
 
 class CsrfExemptView(CsrfExemptMixin, OkView):
     pass
+
+
+class SuccessRedirectView(NextMixin, FormView):
+    form_class = EmptyForm
+    default_success_url = '/'
+    template_name = 'blank.html'
+
+
+class CustomContextNameSuccessRedirectView(SuccessRedirectView):
+    success_url_context = 'foo'
 
 
 class AuthorDetailView(PrefetchRelatedMixin, ListView):

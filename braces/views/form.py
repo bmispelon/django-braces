@@ -1,5 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
@@ -84,7 +85,7 @@ class NextMixin(object): # TODO: name
         return fallback
 
     def is_valid_redirect(self, url):
-        pass # TODO
+        return True # TODO
 
     def redirect(self):
         """A utility method that returns a 302 HTTP response."""

@@ -12,6 +12,7 @@ from .form import (
     CsrfExemptMixin,
     UserFormKwargsMixin,
     SuccessURLRedirectListMixin,
+    NextMixin,
 )
 from .legacy import CreateAndRedirectToEditView
 from .queryset import (

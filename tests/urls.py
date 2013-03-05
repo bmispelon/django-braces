@@ -49,6 +49,12 @@ urlpatterns = patterns('',
     # CsrfExemptMixin tests
     url(r'^csrf_exempt/$', views.CsrfExemptView.as_view()),
 
+    # SuccessRedirectView tests
+    url(r'^success_redirect/$', views.SuccessRedirectView.as_view()),
+    # CustomContextNameSuccessRedirectView tests
+    url(r'^success_redirect/custom_context/$',
+        views.CustomContextNameSuccessRedirectView.as_view()),
+
     # JSONResponseMixin tests
     url(r'^simple_json/$', views.SimpleJsonView.as_view()),
     url(r'^article_list_json/$', views.ArticleListJsonView.as_view()),
