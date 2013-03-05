@@ -58,6 +58,11 @@ urlpatterns = patterns('',
     # JSONResponseMixin tests
     url(r'^simple_json/$', views.SimpleJsonView.as_view()),
     url(r'^article_list_json/$', views.ArticleListJsonView.as_view()),
+
+    # MessageMixin tests
+    url(r'^messages/$', views.MessageView.as_view()),
+    url(r'^messages/form/$', views.FormMessageView.as_view()),
+    url(r'^messages/delete/$', views.DeleteMessageView.as_view()),
 )
 
 urlpatterns += patterns('django.contrib.auth.views',

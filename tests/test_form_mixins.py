@@ -1,7 +1,5 @@
 from django import test
-from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from .compat import force_text
-from .factories import make_user
+from django.core.exceptions import ImproperlyConfigured
 from .helpers import TestViewHelper
 from .views import SuccessRedirectView
 

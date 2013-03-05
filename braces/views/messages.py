@@ -7,15 +7,16 @@ class _MessageWrapper(object):
     request object as the first parameter of function calls.
     
     """
-    def __init__(self, request):
+    def __init__(self, request, api=messages_api):
         self.request = request
+        self.api = api
     
     def __getattr__(self, attr):
         """Retrieve the function in the messages api and curry it with the
         instance's request.
         
         """
-        fn = getattr(messages_api, attr)
+        fn = getattr(self.api, attr)
         return curry(fn, self.request)
 
 

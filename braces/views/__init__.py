@@ -24,3 +24,8 @@ from .serialize import (
     JSONResponseMixin,
     AjaxResponseMixin,
 )
+from .messages import (
+    MessageMixin,
+    FormMessageMixin,
+    DeleteMessageMixin,
+)

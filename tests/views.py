@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.views.generic import (View, UpdateView, FormView, TemplateView,
-    ListView)
+    ListView, DeleteView)
 
 from braces.views import *
 
@@ -193,3 +193,22 @@ class AuthorDetailView(PrefetchRelatedMixin, ListView):
 class BadCheckUserView(CheckUserMixin, OkView):
     # The check_user method is missing on purpose.
     pass
+
+
+class MessageView(MessageMixin, TemplateView):
+    template_name = 'blank.html'
+    def get(self, request, *args, **kwargs):
+        self.messages.success('working')
+        return super(MessageView, self).get(request, *args, **kwargs)
+
+
+class FormMessageView(FormMessageMixin, FormView):
+    form_class = EmptyForm
+    success_url = '/'
+    template_name = 'blank.html'
+
+
+class DeleteMessageView(DeleteMessageMixin, DeleteView):
+    model = Article
+    success_url = '/'
+    template_name = 'blank'
