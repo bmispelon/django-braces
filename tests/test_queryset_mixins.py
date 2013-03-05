@@ -8,7 +8,7 @@ class TestUserQuerysetMixin(test.TestCase):
     def test_queryset_is_filtered(self):
         alice = make_user(username='alice')
         article_alice = make_article(author=alice, title="Alice's article")
-        make_user(username='bob')
+        bob = make_user(username='bob')
         make_article(author=bob, title="Bob's article")
 
         self.client.login(username='alice', password='asdf1234')
@@ -16,6 +16,7 @@ class TestUserQuerysetMixin(test.TestCase):
         resp = self.client.get('/user_article_list/')
         self.assertQuerysetEqual(
             resp.context['object_list'],
-            [article_alice],
-            ordered=False
+            [article_alice.pk],
+            ordered=False,
+            transform=lambda a: a.pk,
         )

@@ -17,6 +17,7 @@ from .legacy import CreateAndRedirectToEditView
 from .queryset import (
     SelectRelatedMixin,
     PrefetchRelatedMixin,
+    UserQuerysetMixin,
 )
 from .serialize import (
     JSONResponseMixin,

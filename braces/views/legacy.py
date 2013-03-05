@@ -1,4 +1,4 @@
-import warning
+import warnings
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
