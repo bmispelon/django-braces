@@ -118,6 +118,12 @@ class UserArticleListView(UserQuerysetMixin, ArticleListView):
     user_field_name = 'author'
 
 
+class OrderedArticleListView(OrderingMixin, ListView):
+    model = Article
+    template_name = 'blank.html'
+    ordering = 'title'
+
+
 class FormWithUserKwargView(UserFormKwargsMixin, FormView):
     """
     View for testing UserFormKwargsMixin.

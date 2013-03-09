@@ -1,6 +1,8 @@
+from collections import OrderedDict
+
 from django.core.exceptions import ImproperlyConfigured
 
-from braces.utils import force_tuple, invert_order_by
+from braces.utils import force_tuple, invert_order_by_tuple
 
 class SelectRelatedMixin(object):
     """
@@ -69,59 +71,102 @@ class UserQuerysetMixin(object):
 
 
 class OrderingMixin(object):
-    """Orders the queryset using self.ordering."""
+    """
+    Orders the queryset using self.ordering.
+    The ordering attribute can either be a string or a tuple/list:
+    
+        * 'name'
+        * '-name'
+        * ('last_name', 'first_name')
+        * ('name', '-age')
+    Note that giving an empty tuple will reset the ordering of the queyset.
+    """
     ordering = None
 
     def get_ordering(self):
-        if isinstance(self.ordering, basestring):
-            raise ImproperlyConfigured("%(cls)s's ordering should be a tuple, "
-                " not a string." % {"cls": self.__class__.name})
-        return self.ordering
+        if self.ordering is None:
+            raise ImproperlyConfigured("%(cls)s is missing an ordering "
+                "attribute." % {"cls": self.__class__.name})
+        return force_tuple(self.ordering)
 
     def get_queryset(self):
         queryset = super(OrderingMixin, self).get_queryset()
         ordering = self.get_ordering()
-        if ordering:
-            queryset = queryset.order_by(*ordering)
+        queryset = queryset.order_by(*ordering)
         return queryset
 
 
 class SortableMixin(OrderingMixin):
     """
-    TODO
+    A mixin that will order a queryset based on a parameter supplied in the
+    URL.
+    To use it, just supply a list of accepted_orderings where each item can be
+    one of the following:
+    
+    * 'name':
+        ?sort=name results in order_by('name')
+        ?sort=-name           order_by('-name')
+    * ('external', 'name'):
+        ?sort=external results in order_by('name')
+        ?sort=-external           order_by('-name')
+    * ('namedesc', '-name'):
+        ?sort=namedesc results in order_by('-name')
+        ?sort=-namedesc           order_by('name')
+    * ('name', ('last_name', 'first_name')):
+        ?sort=name results in order_by('last_name', 'first_name')
+        ?sort=-name           order_by('-last_name', '-first_name')
+    * ('foo', ('name', '-age')):
+        ?sort=foo results in order_by('name', '-age')
+        ?sort=-foo           order_by('-name', 'age')
     """
-    sortables = []
+    accepted_orderings = []
+    default_ordering = None
     sort_parameter = 'sort'
-    sort_context = 'current_sort'
+    
+    def get_default_order_by(self):
+        """
+        If self.default_ordering is not provided, return the first item
+        of self.accepted_orderings.
+        """
+        if self.default_ordering is not None:
+            return force_tuple(self.default_ordering)
+        return self.orderings_dict.items()[0][1]
     
     @property
-    def ordering(self):
+    def orderings_dict(self):
+        """
+        An OrderedDict normalized version of self.accepted_orderings where the
+        keys are the accepted sorting keys and the values are tuples which can
+        be passed unpacked to queryset.order_by()
+        """
+        if not self.accepted_orderings:
+            raise ImproperlyConfigured("%(cls)s is missing an "
+                "accepted_orderings attribute." % {'cls': self.__class__.name})
+        orderings = OrderedDict()
+        for t in self.accepted_orderings:
+            if isinstance(t, basestring):
+                orderings[t] = force_tuple(t)
+            elif len(t) == 1:
+                orderings[t[0]] = force_tuple(t[0])
+            elif len(t) == 2:
+                orderings[t[0]] = force_tuple(t[1])
+            else:
+                raise ImproperlyConfigured("%(cls)s has an invalid "
+                    "accepted_orderings attribute." % {
+                        'cls': self.__class__.name
+                    })
+        return orderings
+    
+    def get_ordering(self):
         requested = self.request.REQUEST.get(self.sort_parameter)
-        default = force_tuple(self.get_default_sort())
+        default = self.get_default_order_by()
         
         if not requested:
             return default
-        key, desc = parse_order_by(requested)
-        if not order_by:
-            return force_tuple(default)
-        
-        order_by = self.get_order_by_for_key(key)
-        if desc:
+        key, inverted = parse_order_by(requested)
+        order_by = self.orderings_dict.get(key)
+        if order_by is None: # Invalid key requested
+            return default
+        if inverted:
             order_by = invert_order_by_tuple(order_by)
         return order_by
-    
-    def get_context_data(self, **kwargs):
-        """Add the current sort to the context."""
-        context = super(SortableMixin, self).get_context_data(**kwargs)
-        context[self.sort_context] = self.ordering
-        return context
-    
-    def get_order_by_for_key(self, key):
-        for external, internal in self.sortables:
-            if key == external:
-                return force_tuple(internal)
-        return None
-    
-    def get_default_sort(self):
-        """The default sort is the first element of self.sortables"""
-        return self.sortables[0]
